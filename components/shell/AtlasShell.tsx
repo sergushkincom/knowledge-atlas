@@ -8,6 +8,7 @@ import { CommandPalette } from '@/components/command/CommandPalette';
 import { Legend } from '@/components/graph/Legend';
 import type { GraphCanvasHandle } from '@/components/graph/GraphCanvas';
 import { Inspector } from '@/components/inspector/Inspector';
+import { SiteFooter } from '@/components/shell/SiteFooter';
 import { ThemeSync } from '@/components/theme/ThemeSync';
 import { CollectionViews } from '@/components/views/CollectionViews';
 import type { SearchHit } from '@/lib/search';
@@ -152,6 +153,8 @@ export function AtlasShell() {
       <Toaster
         theme={theme}
         position="bottom-center"
+        offset={48}
+        mobileOffset={{ bottom: 44 }}
         toastOptions={{
           style: {
             background: 'var(--elevated)',
@@ -351,6 +354,7 @@ export function AtlasShell() {
             onClose={() => setSelectedId(null)}
           />
         </div>
+        <SiteFooter />
       </div>
       <CommandPalette
         open={paletteOpen}
