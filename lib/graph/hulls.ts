@@ -33,25 +33,32 @@ function expand(points: Point[], padding: number): Point[] {
   });
 }
 
-/** Convex hull around a cluster, pushed outward by padding. Small clusters become a ring. */
+function ringAround(points: Point[], padding: number): Point[] {
+  const cx = points.reduce((sum, point) => sum + point[0], 0) / points.length;
+  const cy = points.reduce((sum, point) => sum + point[1], 0) / points.length;
+  const reach = Math.max(
+    ...points.map((point) => Math.hypot(point[0] - cx, point[1] - cy)),
+    18,
+  );
+  return circle(cx, cy, reach + padding);
+}
+
+/**
+ * Convex hull around a cluster, pushed outward by padding.
+ * One or two points, and degenerate hulls (collinear or repeated points), become a ring.
+ * A two-point segment cannot be filled or hit-tested.
+ */
 export function hullFor(points: Point[], padding = HULL_PADDING): Point[] | null {
   if (points.length === 0) {
     return null;
   }
-  if (points.length < 3) {
-    const cx = points.reduce((sum, point) => sum + point[0], 0) / points.length;
-    const cy = points.reduce((sum, point) => sum + point[1], 0) / points.length;
-    const reach = Math.max(
-      ...points.map((point) => Math.hypot(point[0] - cx, point[1] - cy)),
-      18,
-    );
-    return circle(cx, cy, reach + padding);
+  if (points.length >= 3) {
+    const hull = polygonHull(points);
+    if (hull && hull.length >= 3) {
+      return expand(hull, padding);
+    }
   }
-  const hull = polygonHull(points);
-  if (!hull) {
-    return null;
-  }
-  return expand(hull, padding);
+  return ringAround(points, padding);
 }
 
 export function buildClusterHulls(nodes: readonly HullNode[]): Map<string, Point[]> {
