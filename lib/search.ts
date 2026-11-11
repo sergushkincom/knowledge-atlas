@@ -18,7 +18,9 @@ function scoreText(query: string, text: string): number {
     return 120 - Math.min(text.length, 40);
   }
   if (index > 0) {
-    return 90 - index;
+    // indexOf found the query, so the score has to stay positive. Past index 89,
+    // `90 - index` would be 0 or less and the literal match would disappear.
+    return Math.max(90 - index, 1);
   }
   let cursor = 0;
   for (const char of haystack) {
