@@ -1,6 +1,7 @@
 import { notes } from '@/data/seed';
 import type { Note } from '@/lib/types';
 
+/** Future interface; the app does not call it. Own notes go in the seed files. See README, "Your own notes". */
 export interface NotesSource {
   load(): Promise<{ notes: Note[] }>;
 }
