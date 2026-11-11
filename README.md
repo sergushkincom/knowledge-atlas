@@ -109,6 +109,74 @@ move or merge. Esc closes the peek or the menu. The ··· menu has source filte
 Edges are derived when the graph is built, not stored. Your corrections live in this
 browser only (localStorage), and Reset demo restores the seed.
 
+### Your own notes
+
+`lib/store.ts` loads notes from `data/seed.ts` and topics and assignments from
+`data/seedAssignments.ts`. `NotesSource` in `lib/sources/notesSource.ts` is a future
+interface and is not wired up. `MockSource` returns this same seed. `NotionApiSource`
+throws. Notion sync stays listed under "Deliberately not built".
+
+To try your own notes, replace or slim those two files. The generator in
+`data/seed.ts` throws unless it builds exactly 120 notes, three to fifteen content
+lines each, with the title list at the top still matching, so a shorter list means
+updating those checks with the data. Keep every note valid for `noteSchema` in
+`lib/types.ts`: `id`, `title`, `source` (`meeting-notes`, `docs`, `journal`,
+`wiki`, or `tasks`), ISO `createdAt` and `updatedAt`, `excerpt`, `content`,
+`people`, `tags`, `links` (ids of other notes), and a valid `notionUrl`. `icon`
+is optional.
+
+Every note needs an assignment in `data/seedAssignments.ts`, where the topics live
+too. That file throws if one is missing. An assignment is `noteId`, `topicId`,
+`secondaryTopicIds`, `confidence` from 0 to 1, `origin` (`ai` or `user`),
+`locked`, and a one-sentence `reason`. Export `notes`, `topics`, and
+`assignments`. Those are the names `lib/store.ts` imports. The demo tests also
+import `ORPHAN_IDS` and `AMBIGUOUS_NOTE_IDS` and expect this 120-note set, so a
+personal seed fails `pnpm test` until those assertions match.
+
+```ts
+const note = {
+  id: 'note-kickoff',
+  title: 'Atlas kickoff',
+  source: 'meeting-notes',
+  createdAt: '2026-03-12T12:00:00.000Z',
+  updatedAt: '2026-03-12T12:00:00.000Z',
+  excerpt: 'Working name Atlas. It should feel like a map.',
+  content: 'Working name Atlas. It should feel like a map.',
+  people: ['Lena'],
+  tags: ['kickoff'],
+  links: [],
+  notionUrl: 'https://www.notion.so/knowledge-atlas/note-kickoff',
+};
+
+const topic = {
+  id: 'topic-meetings',
+  name: 'Meetings',
+  description: 'Recurring syncs and workshops.',
+  color: 'blue',
+  parentId: null,
+  origin: 'ai',
+};
+
+const assignment = {
+  noteId: 'note-kickoff',
+  topicId: 'topic-meetings',
+  secondaryTopicIds: [],
+  confidence: 0.86,
+  reason: 'A kickoff meeting: agenda, people, and a decision.',
+  origin: 'ai',
+  locked: false,
+};
+```
+
+These objects match `noteSchema`, `topicSchema`, and `assignmentSchema`. The
+bundled topics start at the top of `data/seedAssignments.ts`, and `buildNotes` in
+`data/seed.ts` fills in the same note fields.
+
+Notes reload from the files. Topics, assignments, layouts, and settings stay in
+localStorage under the key `knowledge-atlas`. After you change the seed, click
+**Reset demo** in the ··· menu, or clear that key, or the old topics and
+assignments are still what you see.
+
 ## Running it
 
 ```bash
