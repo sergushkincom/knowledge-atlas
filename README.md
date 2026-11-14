@@ -70,6 +70,13 @@ Tag and people edges are drawn only when two to six notes share the value. "meet
 or "Maria" would connect half the map and turn it into a hairball. A line should mean
 something.
 
+## Color contrast
+
+`lib/theme/contrast.ts` sits next to the topic palette and turns two hex colors into
+a WCAG contrast ratio. Each channel becomes linear light, then the three are weighted
+into relative luminance, and the ratio is (lighter + 0.05) / (darker + 0.05): 1 for
+the same luminance, 21 for black on white.
+
 ## What I found by building it
 
 Moving one note re-settles the whole map. The clusters drift, and the one you were
