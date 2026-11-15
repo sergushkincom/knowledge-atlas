@@ -1,5 +1,5 @@
 # Quality gate: every pull request and every push to main must install,
-# typecheck, lint, test and build cleanly before it can ship.
+# typecheck, lint, unit-test, build, and run the Playwright check before it can ship.
 # Docs: https://docs.github.com/en/actions/writing-workflows/quickstart
 name: CI
 
@@ -21,7 +21,7 @@ jobs:
   verify:
     name: Typecheck, lint, tests, production build
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 20
     env:
       CI: true
       NEXT_TELEMETRY_DISABLED: "1"
@@ -53,3 +53,9 @@ jobs:
 
       - name: Production build
         run: pnpm run build
+
+      - name: Install Playwright browser
+        run: pnpm exec playwright install --with-deps chromium
+
+      - name: End-to-end tests
+        run: pnpm run test:e2e

@@ -55,6 +55,7 @@ export function AtlasShell() {
   const pinNode = useAtlasStore((state) => state.pinNode);
   const unpinNode = useAtlasStore((state) => state.unpinNode);
   const resetDemo = useAtlasStore((state) => state.resetDemo);
+  const recluster = useAtlasStore((state) => state.recluster);
 
   const graphRef = useRef<GraphCanvasHandle>(null);
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -113,6 +114,13 @@ export function AtlasShell() {
     moveNotes([noteId], topicId);
     announceMove(noteId, topicId);
     setSelectedId(noteId);
+  }
+
+  function handleRecluster() {
+    recluster();
+    const message = 'Re-sorted. Your corrections stayed put.';
+    setLive(message);
+    toast(message, { action: { label: 'Undo', onClick: () => undoAtlas() } });
   }
 
   function handleMerged(sourceId: string, targetId: string) {
@@ -266,6 +274,13 @@ export function AtlasShell() {
                   );
                 })}
               </div>
+              <button
+                type="button"
+                onClick={handleRecluster}
+                className="h-7 rounded-md px-2 text-[13px] text-muted hover:bg-hover hover:text-foreground"
+              >
+                Re-sort
+              </button>
               <label className="ml-auto flex h-7 min-w-52 max-w-sm flex-1 items-center gap-2 rounded-md px-2 hover:bg-hover">
                 <Search size={13} className="shrink-0 text-muted" />
                 <input
