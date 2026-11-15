@@ -13,6 +13,7 @@ import {
   moveNotes,
   nestTopic,
   pinNode,
+  reclusterAssignments,
   renameTopic,
   unlockAssignment,
   unpinNode,
@@ -35,6 +36,7 @@ export type AtlasStore = AtlasData & {
   deleteTopic: (topicId: string) => void;
   lockAssignment: (noteId: string) => void;
   unlockAssignment: (noteId: string) => void;
+  recluster: () => void;
   pinNode: (id: string, x: number, y: number) => void;
   unpinNode: (id: string) => void;
   setTheme: (theme: ThemeName) => void;
@@ -135,6 +137,9 @@ export const useAtlasStore = create<AtlasStore>()(
           },
           unlockAssignment: (noteId) => {
             commit(unlockAssignment(snapshot(get()), noteId));
+          },
+          recluster: () => {
+            commit(reclusterAssignments(snapshot(get())));
           },
           pinNode: (id, x, y) => {
             commit(pinNode(snapshot(get()), id, x, y));

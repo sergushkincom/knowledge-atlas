@@ -5,6 +5,12 @@ export const LOW_CONFIDENCE_THRESHOLD = 0.6;
 export const USER_MOVE_REASON = 'Moved by you';
 
 /**
+ * Reason stored when the scripted re-sort promotes a note's other topic.
+ * Locked corrections keep USER_MOVE_REASON instead.
+ */
+export const RECLUSTER_REASON = 'Re-clustered to the other plausible topic.';
+
+/**
  * Tag and person edges are only drawn when that value is shared by a small
  * group. Very common values ("meeting", "Maria") would turn into hairballs.
  */

@@ -1,4 +1,4 @@
-import { USER_MOVE_REASON } from '@/lib/constants';
+import { RECLUSTER_REASON, USER_MOVE_REASON } from '@/lib/constants';
 import { topicPalette } from '@/lib/theme/palette';
 import type {
   Assignment,
@@ -438,6 +438,44 @@ export function lockAssignment(
       origin: 'user',
     }),
   };
+}
+
+/**
+ * Scripted second pass over the assignments already on the map.
+ * An unlocked note that has another plausible topic moves there.
+ * A locked note is returned as-is, so a "Moved by you" correction stays.
+ */
+export function reclusterAssignments(
+  state: GraphState,
+): Pick<GraphState, 'assignments'> {
+  const topicIds = new Set(state.topics.map((topic) => topic.id));
+  let changed = false;
+  const assignments = state.assignments.map((assignment) => {
+    if (assignment.locked) {
+      return assignment;
+    }
+    const nextTopicId = assignment.secondaryTopicIds.find(
+      (id) => id !== assignment.topicId && topicIds.has(id),
+    );
+    if (!nextTopicId) {
+      return assignment;
+    }
+    changed = true;
+    return {
+      ...assignment,
+      topicId: nextTopicId,
+      secondaryTopicIds: [
+        assignment.topicId,
+        ...assignment.secondaryTopicIds.filter(
+          (id) => id !== nextTopicId && id !== assignment.topicId,
+        ),
+      ],
+      reason: RECLUSTER_REASON,
+      origin: 'ai' as const,
+      locked: false,
+    };
+  });
+  return { assignments: changed ? assignments : state.assignments };
 }
 
 export function unlockAssignment(
