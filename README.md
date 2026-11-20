@@ -1,5 +1,9 @@
 # Knowledge Atlas
 
+<!-- coverage-badge:start -->
+[![Coverage](https://img.shields.io/badge/coverage-46.9%25-red?style=flat)](https://github.com/sergushkincom/knowledge-atlas/actions/workflows/ci.yml)
+<!-- coverage-badge:end -->
+
 **The question:** what if the way an AI sorted your notes were something you could
 see, question and overrule, and the AI then left your correction alone?
 
@@ -192,8 +196,14 @@ pnpm dev
 # → http://localhost:3000
 
 pnpm test
+pnpm test:coverage
+pnpm coverage:badge
 pnpm lint
 ```
+
+`pnpm test:coverage` writes an HTML report to `coverage/` (not committed). The badge
+above is the line coverage of `lib/`. `pnpm coverage:badge` copies that percentage
+into the badge. CI uploads the same report and fails if the badge has drifted.
 
 Built in my own time. Fake data throughout, no production code and nothing proprietary,
 just enough to feel the interaction.
