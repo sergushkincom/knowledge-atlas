@@ -1,5 +1,6 @@
 # Quality gate: every pull request and every push to main must install,
-# typecheck, lint, unit-test, build, and run the Playwright check before it can ship.
+# typecheck, lint, unit-test, report coverage, build, and run the Playwright
+# check before it can ship.
 # Docs: https://docs.github.com/en/actions/writing-workflows/quickstart
 name: CI
 
@@ -11,6 +12,8 @@ on:
 
 permissions:
   contents: read
+  # Lets this job upload the coverage report. It does not allow pushing commits.
+  actions: write
 
 # A newer push to the same branch cancels the older, now pointless run.
 concurrency:
@@ -19,7 +22,7 @@ concurrency:
 
 jobs:
   verify:
-    name: Typecheck, lint, tests, production build
+    name: Typecheck, lint, tests, coverage, production build
     runs-on: ubuntu-latest
     timeout-minutes: 20
     env:
@@ -50,6 +53,23 @@ jobs:
 
       - name: Tests
         run: pnpm run test
+
+      - name: Coverage
+        run: pnpm run test:coverage
+
+      - name: Coverage badge matches the report
+        run: node scripts/coverage-badge.mjs --check
+
+      - name: Publish coverage summary
+        run: node scripts/coverage-badge.mjs --summary >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload coverage report
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: coverage-report
+          path: coverage
+          if-no-files-found: error
+          retention-days: 14
 
       - name: Production build
         run: pnpm run build
