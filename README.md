@@ -5,6 +5,10 @@ see, question and overrule, and the AI then left your correction alone?
 
 [Live demo →](https://denys-knowledge-atlas.vercel.app)
 
+![Hiring sync dragged from Meetings into Interview prep: the peek switches to "Moved by you" and "Locked by you", then Undo puts it back in Meetings at 46%, unlocked](./docs/move-lock-undo.gif)
+
+*One move, start to finish: drag "Hiring sync" into Interview prep, it reads "Moved by you" and "Locked by you", and Undo puts it back.*
+
 ![The graph: nine topic clusters drawn as soft membranes, with low-confidence notes marked by a dashed ring](./preview-graph.png)
 
 *Graph: 120 notes the AI sorted into nine topics. A dashed ring marks the notes it isn't sure about.*
