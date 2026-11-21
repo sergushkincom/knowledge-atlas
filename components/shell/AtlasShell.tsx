@@ -13,6 +13,7 @@ import { ThemeSync } from '@/components/theme/ThemeSync';
 import { CollectionViews } from '@/components/views/CollectionViews';
 import type { SearchHit } from '@/lib/search';
 import { SOURCE_LABELS } from '@/lib/selectors';
+import { FileSource, NotesFileError } from '@/lib/sources/notesSource';
 import { redoAtlas, undoAtlas, useAtlasStore } from '@/lib/store';
 import type { LayerVisibility, NoteSource } from '@/lib/types';
 
@@ -55,9 +56,12 @@ export function AtlasShell() {
   const pinNode = useAtlasStore((state) => state.pinNode);
   const unpinNode = useAtlasStore((state) => state.unpinNode);
   const resetDemo = useAtlasStore((state) => state.resetDemo);
+  const loadNotes = useAtlasStore((state) => state.loadNotes);
+  const usingOwnNotes = useAtlasStore((state) => state.customNotes !== null);
   const recluster = useAtlasStore((state) => state.recluster);
 
   const graphRef = useRef<GraphCanvasHandle>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [query, setQuery] = useState('');
   const [paletteOpen, setPaletteOpen] = useState(false);
@@ -155,6 +159,31 @@ export function AtlasShell() {
     });
   }
 
+
+  const handleNotesFile = async (file: File | undefined) => {
+    if (!file) {
+      return;
+    }
+    try {
+      const loaded = await new FileSource(file).load();
+      loadNotes(loaded);
+      setSelectedId(null);
+      setSources(null);
+      const count = loaded.notes.length;
+      const message = `Loaded ${count} ${count === 1 ? 'note' : 'notes'} from ${file.name}`;
+      toast(message, {
+        description: loaded.assignments
+          ? 'Topics and assignments come from the file.'
+          : 'They wait in Unsorted. Drag them onto topics.',
+      });
+      setLive(message);
+    } catch (error) {
+      const reason =
+        error instanceof NotesFileError ? error.message : 'The file could not be read.';
+      toast.error('Notes not loaded', { description: reason });
+      setLive(`Notes not loaded. ${reason}`);
+    }
+  };
   return (
     <div className="flex h-dvh overflow-hidden bg-background text-foreground">
       <ThemeSync />
@@ -238,17 +267,48 @@ export function AtlasShell() {
                 <button
                   type="button"
                   onClick={() => {
+                    setMenuOpen(false);
+                    fileInputRef.current?.click();
+                  }}
+                  className="flex h-8 w-full items-center px-3 text-left hover:bg-hover"
+                >
+                  Load notes from file…
+                </button>
+                <a
+                  href="/sample-notes.json"
+                  download
+                  onClick={() => setMenuOpen(false)}
+                  className="flex h-8 w-full items-center px-3 text-left text-muted hover:bg-hover hover:text-foreground"
+                >
+                  Download a sample file
+                </a>
+                <button
+                  type="button"
+                  onClick={() => {
                     resetDemo();
                     setMenuOpen(false);
                     setLive('Demo reset');
                   }}
                   className="flex h-8 w-full items-center px-3 text-left text-muted hover:bg-hover hover:text-foreground"
                 >
-                  Reset demo
+                  {usingOwnNotes ? 'Back to the demo notes' : 'Reset demo'}
                 </button>
               </div>
             </>
           ) : null}
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept=".json,application/json"
+            aria-label="Notes file"
+            className="hidden"
+            onChange={(event) => {
+              const input = event.currentTarget;
+              void handleNotesFile(input.files?.[0]).finally(() => {
+                input.value = '';
+              });
+            }}
+          />
         </header>
         <div className="flex min-h-0 flex-1">
           <div className="flex min-h-0 min-w-0 flex-1 flex-col">

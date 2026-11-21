@@ -1,0 +1,154 @@
+{
+  "notes": [
+    {
+      "id": "note-garden-plan",
+      "title": "Spring garden plan",
+      "source": "journal",
+      "createdAt": "2026-03-02T09:00:00.000Z",
+      "updatedAt": "2026-03-02T09:00:00.000Z",
+      "excerpt": "Tomatoes by the south wall, herbs in pots, beans along the fence.",
+      "content": "Tomatoes by the south wall, herbs in pots, beans along the fence.",
+      "people": [
+        "Ana"
+      ],
+      "tags": [
+        "garden",
+        "plan"
+      ],
+      "links": [
+        "note-seed-order",
+        "note-watering"
+      ],
+      "notionUrl": "https://www.notion.so/my-notes/note-garden-plan"
+    },
+    {
+      "id": "note-seed-order",
+      "title": "Seed order",
+      "source": "tasks",
+      "createdAt": "2026-03-04T09:00:00.000Z",
+      "updatedAt": "2026-03-04T09:00:00.000Z",
+      "excerpt": "Order cherry tomatoes, basil, runner beans. Check delivery before 20 March.",
+      "content": "Order cherry tomatoes, basil, runner beans. Check delivery before 20 March.",
+      "people": [],
+      "tags": [
+        "garden",
+        "order"
+      ],
+      "links": [
+        "note-garden-plan"
+      ],
+      "notionUrl": "https://www.notion.so/my-notes/note-seed-order"
+    },
+    {
+      "id": "note-watering",
+      "title": "Watering schedule",
+      "source": "docs",
+      "createdAt": "2026-04-10T09:00:00.000Z",
+      "updatedAt": "2026-04-10T09:00:00.000Z",
+      "excerpt": "Morning watering every second day. Pots daily in July.",
+      "content": "Morning watering every second day. Pots daily in July.",
+      "people": [
+        "Ana"
+      ],
+      "tags": [
+        "garden",
+        "routine"
+      ],
+      "links": [
+        "note-garden-plan"
+      ],
+      "notionUrl": "https://www.notion.so/my-notes/note-watering"
+    },
+    {
+      "id": "note-book-club",
+      "title": "Book club: March pick",
+      "source": "meeting-notes",
+      "createdAt": "2026-03-12T09:00:00.000Z",
+      "updatedAt": "2026-03-12T09:00:00.000Z",
+      "excerpt": "We picked a short novel for March. Next meeting at Leo's.",
+      "content": "We picked a short novel for March. Next meeting at Leo's.",
+      "people": [
+        "Leo",
+        "Mia"
+      ],
+      "tags": [
+        "books",
+        "club"
+      ],
+      "links": [
+        "note-reading-list"
+      ],
+      "notionUrl": "https://www.notion.so/my-notes/note-book-club"
+    },
+    {
+      "id": "note-reading-list",
+      "title": "Reading list",
+      "source": "wiki",
+      "createdAt": "2026-02-20T09:00:00.000Z",
+      "updatedAt": "2026-02-20T09:00:00.000Z",
+      "excerpt": "Three novels, one book on habits, one on cities.",
+      "content": "Three novels, one book on habits, one on cities.",
+      "people": [],
+      "tags": [
+        "books"
+      ],
+      "links": [
+        "note-book-club"
+      ],
+      "notionUrl": "https://www.notion.so/my-notes/note-reading-list"
+    },
+    {
+      "id": "note-bike-repair",
+      "title": "Bike repair",
+      "source": "tasks",
+      "createdAt": "2026-05-03T09:00:00.000Z",
+      "updatedAt": "2026-05-03T09:00:00.000Z",
+      "excerpt": "Rear brake squeaks. New pads, then check the chain.",
+      "content": "Rear brake squeaks. New pads, then check the chain.",
+      "people": [],
+      "tags": [
+        "bike",
+        "errand"
+      ],
+      "links": [],
+      "notionUrl": "https://www.notion.so/my-notes/note-bike-repair"
+    },
+    {
+      "id": "note-trip-ideas",
+      "title": "Weekend trip ideas",
+      "source": "journal",
+      "createdAt": "2026-05-18T09:00:00.000Z",
+      "updatedAt": "2026-05-18T09:00:00.000Z",
+      "excerpt": "Lake by train, a hike with a hut, or a city with a good market.",
+      "content": "Lake by train, a hike with a hut, or a city with a good market.",
+      "people": [
+        "Mia"
+      ],
+      "tags": [
+        "travel"
+      ],
+      "links": [
+        "note-packing"
+      ],
+      "notionUrl": "https://www.notion.so/my-notes/note-trip-ideas"
+    },
+    {
+      "id": "note-packing",
+      "title": "Packing list",
+      "source": "docs",
+      "createdAt": "2026-05-20T09:00:00.000Z",
+      "updatedAt": "2026-05-20T09:00:00.000Z",
+      "excerpt": "Rain jacket, charger, water bottle, snacks, tickets.",
+      "content": "Rain jacket, charger, water bottle, snacks, tickets.",
+      "people": [],
+      "tags": [
+        "travel",
+        "list"
+      ],
+      "links": [
+        "note-trip-ideas"
+      ],
+      "notionUrl": "https://www.notion.so/my-notes/note-packing"
+    }
+  ]
+}
