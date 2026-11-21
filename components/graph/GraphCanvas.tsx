@@ -16,6 +16,7 @@ import { buildGraph } from '@/lib/graph/buildGraph';
 import { createClusterForce, seededPosition, type ClusterBody } from '@/lib/graph/forces';
 import { buildClusterHulls, drawBubbleHull, type Point } from '@/lib/graph/hulls';
 import { findHubDropTarget, findNoteDropTarget, type HubPoint } from '@/lib/graph/hitTest';
+import { createClusterMotion, prefersReducedMotion, type ClusterMotion } from '@/lib/graph/motion';
 import { topicSwatch } from '@/lib/theme/palette';
 import { useAtlasStore } from '@/lib/store';
 import type { EdgeKind, LayerVisibility, NoteSource, ThemeName, TopicColor } from '@/lib/types';
@@ -136,8 +137,12 @@ export const GraphCanvas = forwardRef<GraphCanvasHandle, {
   const fgRef = useRef<GraphApi | null>(null);
   const positions = useRef(new Map<string, { x: number; y: number }>());
   const hullsRef = useRef(new Map<string, Point[]>());
-  const frameRef = useRef(0);
   const fittedRef = useRef(false);
+  const motionRef = useRef<ClusterMotion | null>(null);
+  if (motionRef.current === null) {
+    motionRef.current = createClusterMotion();
+  }
+  const motion = motionRef.current;
   const dragRef = useRef(false);
   const zoomRef = useRef(1);
   const [size, setSize] = useState({ width: 800, height: 640 });
@@ -198,6 +203,9 @@ export const GraphCanvas = forwardRef<GraphCanvasHandle, {
 
   const dataRef = useRef(graphData);
   dataRef.current = graphData;
+  // Pin a flying note before the force layout warms up, or those ticks
+  // would drag it across the map before the first paint of the arc.
+  motion.sync(graphData.nodes, prefersReducedMotion());
 
   useEffect(() => {
     const element = wrapRef.current;
@@ -227,6 +235,11 @@ export const GraphCanvas = forwardRef<GraphCanvasHandle, {
     link?.distance((item) => (item.kind === 'belongs' ? (item.weight === 1 ? 58 : 96) : 120));
     link?.strength((item) => {
       if (item.kind === 'belongs') {
+        const source = endpointId(item.source);
+        const target = endpointId(item.target);
+        if (motion.flying(source) || motion.flying(target)) {
+          return 0;
+        }
         return item.weight === 1 ? 0.62 : 0.04;
       }
       if (item.kind === 'link') {
@@ -237,7 +250,7 @@ export const GraphCanvas = forwardRef<GraphCanvasHandle, {
     fg.d3Force('cluster', createClusterForce(0.5));
     fg.d3Force('collision', forceCollide<SimNode>().radius((node) => node.radius + 7).strength(0.85));
     fg.d3ReheatSimulation();
-  }, [graphData]);
+  }, [graphData, motion]);
 
   useEffect(() => {
     const byId = new Map(layouts.map((layout) => [layout.id, layout]));
@@ -253,7 +266,7 @@ export const GraphCanvas = forwardRef<GraphCanvasHandle, {
           changed = true;
         }
         node.pinned = true;
-      } else if (!dragRef.current && node.fx != null) {
+      } else if (!dragRef.current && node.fx != null && !motion.flying(node.id)) {
         node.fx = undefined;
         node.fy = undefined;
         node.pinned = false;
@@ -263,7 +276,7 @@ export const GraphCanvas = forwardRef<GraphCanvasHandle, {
     if (changed) {
       fgRef.current?.d3ReheatSimulation();
     }
-  }, [layouts, graphData]);
+  }, [layouts, graphData, motion]);
 
   useImperativeHandle(ref, () => ({
     focus: (id: string) => {
@@ -393,15 +406,24 @@ export const GraphCanvas = forwardRef<GraphCanvasHandle, {
           const swatch = topicSwatch(node.color, viewRef.current.theme);
           const selected = node.id === viewRef.current.selectedId;
           const hovered = node.id === viewRef.current.hoverId;
+          const lift = motion.lift(node.id);
+          const radius = node.radius * (1 + 0.14 * lift);
           context.save();
           context.globalAlpha = nodeAlpha(node);
+          if (lift > 0.02) {
+            context.beginPath();
+            context.arc(node.x, node.y, radius + 3.5 / globalScale, 0, Math.PI * 2);
+            context.strokeStyle = `rgba(35, 131, 226, ${0.55 * lift})`;
+            context.lineWidth = 2 / globalScale;
+            context.stroke();
+          }
           context.beginPath();
-          context.arc(node.x, node.y, node.radius, 0, Math.PI * 2);
+          context.arc(node.x, node.y, radius, 0, Math.PI * 2);
           context.fillStyle = swatch.node;
           context.fill();
           if (node.kind === 'note' && node.lowConfidence) {
             context.beginPath();
-            context.arc(node.x, node.y, node.radius + 5 / globalScale, 0, Math.PI * 2);
+            context.arc(node.x, node.y, radius + 5 / globalScale, 0, Math.PI * 2);
             context.setLineDash([2.2 / globalScale, 1.6 / globalScale]);
             context.strokeStyle = swatch.label;
             context.lineWidth = 1.15 / globalScale;
@@ -410,21 +432,21 @@ export const GraphCanvas = forwardRef<GraphCanvasHandle, {
           }
           if (selected || hovered) {
             context.beginPath();
-            context.arc(node.x, node.y, node.radius + 2.5 / globalScale, 0, Math.PI * 2);
+            context.arc(node.x, node.y, radius + 2.5 / globalScale, 0, Math.PI * 2);
             context.strokeStyle = ACCENT;
             context.lineWidth = 1.5 / globalScale;
             context.stroke();
           }
-          if (node.pinned || node.fx != null) {
+          if ((node.pinned || node.fx != null) && !motion.flying(node.id)) {
             context.beginPath();
-            context.arc(node.x + node.radius * 0.7, node.y - node.radius * 0.75, 2.2 / globalScale, 0, Math.PI * 2);
+            context.arc(node.x + radius * 0.7, node.y - radius * 0.75, 2.2 / globalScale, 0, Math.PI * 2);
             context.fillStyle = swatch.label;
             context.fill();
           }
           const showLabel = node.kind === 'topic' || globalScale > 1.3 || selected || hovered;
           if (showLabel) {
             const sizePx = node.kind === 'topic' ? 12 : 10;
-            const labelY = node.y + node.radius + (node.kind === 'topic' ? 8 : 4) / globalScale;
+            const labelY = node.y + radius + (node.kind === 'topic' ? 8 : 4) / globalScale;
             context.font = `${node.kind === 'topic' ? 600 : 400} ${sizePx / globalScale}px Inter, sans-serif`;
             context.textAlign = 'center';
             context.textBaseline = 'top';
@@ -449,7 +471,19 @@ export const GraphCanvas = forwardRef<GraphCanvasHandle, {
           context.arc(node.x, node.y, Math.max(node.radius, 8), 0, Math.PI * 2);
           context.fill();
         }}
-        linkVisibility={(raw: SimLink) => linkVisible(raw.kind, viewRef.current.layers)}
+        linkVisibility={(raw: SimLink) => {
+          if (!linkVisible(raw.kind, viewRef.current.layers)) {
+            return false;
+          }
+          if (raw.kind === 'belongs') {
+            const source = endpointId(raw.source);
+            const target = endpointId(raw.target);
+            if (motion.flying(source) || motion.flying(target)) {
+              return false;
+            }
+          }
+          return true;
+        }}
         linkColor={(raw: SimLink) => {
           const link = raw;
           const view = viewRef.current;
@@ -496,12 +530,14 @@ export const GraphCanvas = forwardRef<GraphCanvasHandle, {
           fgRef.current?.zoomToFit(500, 80);
         }}
         onRenderFramePre={(context: CanvasRenderingContext2D, globalScale: number) => {
-          frameRef.current += 1;
           const nodes = dataRef.current.nodes;
+          const reduced = prefersReducedMotion();
+          const dt = motion.advance(performance.now());
+          motion.step(nodes, dt, reduced);
           remember(nodes);
-          if (dragRef.current || frameRef.current % 3 === 1) {
-            hullsRef.current = buildClusterHulls(nodes);
-          }
+          const resting = nodes.filter((node) => !motion.flying(node.id));
+          const hulls = buildClusterHulls(resting);
+          hullsRef.current = motion.outlines(hulls, dt, reduced || dragRef.current);
           if (!viewRef.current.layers.topics) {
             return;
           }
@@ -566,6 +602,7 @@ export const GraphCanvas = forwardRef<GraphCanvasHandle, {
         onNodeClick={(raw: SimNode, event: MouseEvent) => {
           const node = raw;
           if (event.detail >= 2) {
+            motion.cancel(node.id);
             node.fx = undefined;
             node.fy = undefined;
             node.pinned = false;
@@ -581,13 +618,13 @@ export const GraphCanvas = forwardRef<GraphCanvasHandle, {
         onNodeDrag={(raw: SimNode) => {
           const node = raw;
           dragRef.current = true;
+          motion.cancel(node.id);
           setTooltip(null);
           if (node.x == null || node.y == null) {
             return;
           }
           const nodes = dataRef.current.nodes;
-          const hulls = buildClusterHulls(nodes);
-          hullsRef.current = hulls;
+          const hulls = buildClusterHulls(nodes.filter((item) => !motion.flying(item.id)));
           const hubs = hubsOf(nodes);
           const zoom = zoomRef.current || 1;
           if (node.kind === 'note') {

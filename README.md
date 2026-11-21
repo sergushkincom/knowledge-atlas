@@ -1,7 +1,7 @@
 # Knowledge Atlas
 
 <!-- coverage-badge:start -->
-[![Coverage](https://img.shields.io/badge/coverage-46.9%25-red?style=flat)](https://github.com/sergushkincom/knowledge-atlas/actions/workflows/ci.yml)
+[![Coverage](https://img.shields.io/badge/coverage-58.9%25-orange?style=flat)](https://github.com/sergushkincom/knowledge-atlas/actions/workflows/ci.yml)
 <!-- coverage-badge:end -->
 
 **The question:** what if the way an AI sorted your notes were something you could
