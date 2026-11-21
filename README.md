@@ -118,7 +118,8 @@ what changed.
 
 Search in the bar filters the current view, and ⌘K opens the same search. ⌘Z undoes a
 move or merge. Esc closes the peek or the menu. The ··· menu has source filters
-(Meeting notes, Docs, Journal, Wiki, Tasks) and **Reset demo**.
+(Meeting notes, Docs, Journal, Wiki, Tasks), **Load notes from file…** (see "Your own
+notes" below), and **Reset demo**.
 
 `data/seed.ts` has 120 notes and `data/seedAssignments.ts` sorts them into nine topics.
 Edges are derived when the graph is built, not stored. Your corrections live in this
@@ -126,12 +127,31 @@ browser only (localStorage), and Reset demo restores the seed.
 
 ### Your own notes
 
-`lib/store.ts` loads notes from `data/seed.ts` and topics and assignments from
-`data/seedAssignments.ts`. `NotesSource` in `lib/sources/notesSource.ts` is a future
-interface and is not wired up. `MockSource` returns this same seed. `NotionApiSource`
-throws. Notion sync stays listed under "Deliberately not built".
+**From a file, in the running demo.** Open the ··· menu and pick **Load notes from
+file…**. The file is JSON: either an array of notes, or
+`{ "notes": [...], "topics": [...], "assignments": [...] }` where topics and
+assignments are optional. **Download a sample file** in the same menu gives you
+[`public/sample-notes.json`](public/sample-notes.json) to start from.
 
-To try your own notes, replace or slim those two files. The generator in
+- Every note must match `noteSchema` (fields below). Links to notes that are not
+  in the file are dropped. A broken file is refused with the first problem named,
+  for example `notes.3.source: Invalid option: expected one of "meeting-notes"|"docs"|…`.
+- Without assignments, your notes go to **Unsorted** with confidence 0, so they
+  show up as "needs review" and you drag them onto topics. The current topics stay.
+- With topics and assignments, the atlas uses them as they are. An Unsorted topic
+  is added if none has `"isInbox": true`.
+- The file is read in the browser (`FileSource` in `lib/sources/notesSource.ts`,
+  up to 2 MB) and kept in localStorage under `knowledge-atlas`, so it survives a
+  reload. Nothing is uploaded. Loading clears undo history.
+- **Back to the demo notes** in the same menu restores the bundled set.
+
+`NotesSource` in `lib/sources/notesSource.ts` has three implementations:
+`MockSource` returns the bundled seed, `FileSource` reads a file, and
+`NotionApiSource` throws. Notion sync stays listed under "Deliberately not built".
+
+**In the code.** `lib/store.ts` loads the demo notes from `data/seed.ts` and topics
+and assignments from `data/seedAssignments.ts`. To change the bundled set,
+replace or slim those two files. The generator in
 `data/seed.ts` throws unless it builds exactly 120 notes, three to fifteen content
 lines each, with the title list at the top still matching, so a shorter list means
 updating those checks with the data. Keep every note valid for `noteSchema` in

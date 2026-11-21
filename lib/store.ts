@@ -21,12 +21,18 @@ import {
   type GraphState,
 } from '@/lib/actions';
 import { ATLAS_STORAGE_KEY, ATLAS_STORAGE_VERSION } from '@/lib/constants';
-import type { AtlasData, LayerVisibility, Settings, ThemeName } from '@/lib/types';
+import { atlasFromLoaded } from '@/lib/loadNotes';
+import type { LoadedNotes } from '@/lib/sources/notesSource';
+import type { AtlasData, LayerVisibility, Note, Settings, ThemeName } from '@/lib/types';
 import { defaultSettings } from '@/lib/types';
 
 type HistorySlice = Pick<GraphState, 'topics' | 'assignments' | 'layouts'>;
 
 export type AtlasStore = AtlasData & {
+  /** Notes loaded from a file, kept across reloads. null = the bundled demo notes. */
+  customNotes: Note[] | null;
+  /** Replaces the notes with ones from a file. Clears undo history. */
+  loadNotes: (loaded: LoadedNotes) => void;
   moveNotes: (noteIds: string[], topicId: string) => void;
   addSecondaryTopic: (noteId: string, topicId: string) => void;
   createTopic: (input: CreateTopicInput) => string;
@@ -59,8 +65,9 @@ function browserStorage(): StateStorage {
   return localStorage;
 }
 
-function createInitialState(): AtlasData {
+function createInitialState(): AtlasData & { customNotes: Note[] | null } {
   return {
+    customNotes: null,
     notes: structuredClone(notes),
     topics: structuredClone(topics),
     assignments: structuredClone(assignments),
@@ -157,9 +164,22 @@ export const useAtlasStore = create<AtlasStore>()(
               state.settings.layers[layer] = !state.settings.layers[layer];
             });
           },
+          loadNotes: (loaded) => {
+            const next = atlasFromLoaded(loaded, get().topics);
+            set((state) => {
+              state.notes = next.notes;
+              state.customNotes = next.notes;
+              state.topics = next.topics;
+              state.assignments = next.assignments;
+              state.layouts = [];
+            });
+            (api as unknown as TemporalApi).temporal.getState().clear();
+          },
           resetDemo: () => {
             const fresh = createInitialState();
             set((state) => {
+              state.notes = fresh.notes;
+              state.customNotes = null;
               state.topics = fresh.topics;
               state.assignments = fresh.assignments;
               state.layouts = fresh.layouts;
@@ -191,7 +211,18 @@ export const useAtlasStore = create<AtlasStore>()(
         assignments: state.assignments,
         layouts: state.layouts,
         settings: state.settings,
+        customNotes: state.customNotes,
       }),
+      merge: (persisted, current) => {
+        const saved = (persisted ?? {}) as Partial<AtlasStore>;
+        const customNotes = saved.customNotes ?? null;
+        return {
+          ...current,
+          ...saved,
+          customNotes,
+          notes: customNotes ?? current.notes,
+        };
+      },
     },
   ),
 );
