@@ -136,10 +136,28 @@ describe('store.loadNotes', () => {
     expect(state.assignments.map((item) => item.noteId)).toEqual(['a', 'b']);
     expect(state.layouts).toEqual([]);
 
+    expect(state.unsortedArrival).toMatchObject({ ids: ['a', 'b'], animate: true });
+
     state.resetDemo();
     state = useAtlasStore.getState();
     expect(state.customNotes).toBeNull();
     expect(state.notes).toHaveLength(demoCount);
     expect(state.assignments).toHaveLength(demoCount);
+    expect(state.unsortedArrival).toBeNull();
+  });
+
+  it('does not fade notes that the file already placed in a topic', () => {
+    const assignment = {
+      noteId: 'a',
+      topicId: 'topic-home',
+      secondaryTopicIds: [],
+      confidence: 0.9,
+      reason: 'At home.',
+      origin: 'user' as const,
+      locked: true,
+    };
+    useAtlasStore.getState().loadNotes({ notes: [note('a')], topics: ownTopics, assignments: [assignment] });
+    expect(useAtlasStore.getState().unsortedArrival).toBeNull();
+    useAtlasStore.getState().resetDemo();
   });
 });

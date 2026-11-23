@@ -62,11 +62,30 @@ input {
   outline-offset: 2px;
 }
 
+@keyframes note-arrive {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.note-arrive {
+  animation-name: note-arrive;
+  animation-timing-function: ease-out;
+  animation-fill-mode: both;
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
   *::after {
     animation-duration: 0.01ms !important;
     transition-duration: 0.01ms !important;
+  }
+
+  .note-arrive {
+    animation: none !important;
   }
 }
