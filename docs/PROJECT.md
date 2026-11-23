@@ -10,6 +10,8 @@ A dark page of notes the AI has already sorted. Graph, List and Folder show the 
 
 ## Where things live
 
+- `components/shell/AtlasShell.tsx` is the page. Dropping a JSON notes file on it loads those notes the same way as **Load notes from file…**. While the file is over the page, a dashed area reads "Drop your notes". A file that is not valid notes shows the same error as the file picker.
+- `lib/arrival.ts` fades notes that land in Unsorted, one after another. `prefers-reduced-motion: reduce` shows them at once.
 - `components/graph/GraphCanvas.tsx` draws the graph and owns drag, drop, and the paint loop.
 - `lib/graph/hulls.ts` builds a cluster membrane and paints the soap-bubble outline.
 - `lib/graph/motion.ts` flies a moved note and eases those outlines.
@@ -25,7 +27,7 @@ Now the note lifts off and travels a curve to a seat on the near side of the new
 
 Membranes ease even when the corner count changes. Each outline is resampled to a fixed ring of points around its center, and those points spring toward the new ring. A shape with a different number of corners can then ease instead of swapping.
 
-`prefers-reduced-motion: reduce` skips the arc and the membrane spring. The note changes cluster at once.
+`prefers-reduced-motion: reduce` skips the arc and the membrane spring. The note changes cluster at once. The same setting skips the fade-in of notes just loaded into Unsorted.
 
 The note takes the new topic's color when it leaves. The flight is the part that shows where it came from.
 

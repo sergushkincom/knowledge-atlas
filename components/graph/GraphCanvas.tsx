@@ -12,6 +12,7 @@ import {
   type Ref,
 } from 'react';
 import ForceGraph2D from 'react-force-graph-2d';
+import { arrivalOpacity } from '@/lib/arrival';
 import { buildGraph } from '@/lib/graph/buildGraph';
 import { createClusterForce, seededPosition, type ClusterBody } from '@/lib/graph/forces';
 import { buildClusterHulls, drawBubbleHull, type Point } from '@/lib/graph/hulls';
@@ -130,6 +131,7 @@ export const GraphCanvas = forwardRef<GraphCanvasHandle, {
   const topics = useAtlasStore((state) => state.topics);
   const assignments = useAtlasStore((state) => state.assignments);
   const layouts = useAtlasStore((state) => state.layouts);
+  const unsortedArrival = useAtlasStore((state) => state.unsortedArrival);
   const layers = useAtlasStore((state) => state.settings.layers);
   const theme = useAtlasStore((state) => state.settings.theme);
 
@@ -166,6 +168,39 @@ export const GraphCanvas = forwardRef<GraphCanvasHandle, {
     sources,
     selectedId,
   };
+
+  const arrivalRef = useRef<{
+    startedAt: number;
+    count: number;
+    index: Map<string, number>;
+  } | null>(null);
+  const arrivalStamp = unsortedArrival?.startedAt ?? null;
+  if ((arrivalRef.current?.startedAt ?? null) !== arrivalStamp) {
+    arrivalRef.current = unsortedArrival
+      ? {
+          startedAt: unsortedArrival.startedAt,
+          count: unsortedArrival.ids.length,
+          index: new Map(unsortedArrival.ids.map((id, index) => [id, index])),
+        }
+      : null;
+  }
+
+  function revealOf(id: string): number {
+    const arrival = arrivalRef.current;
+    if (!arrival) {
+      return 1;
+    }
+    const index = arrival.index.get(id);
+    if (index === undefined) {
+      return 1;
+    }
+    return arrivalOpacity(
+      index,
+      arrival.count,
+      performance.now() - arrival.startedAt,
+      prefersReducedMotion(),
+    );
+  }
 
   const topicIds = useMemo(() => topics.map((topic) => topic.id), [topics]);
   const notesById = useMemo(() => new Map(notes.map((note) => [note.id, note])), [notes]);
@@ -311,13 +346,13 @@ export const GraphCanvas = forwardRef<GraphCanvasHandle, {
 
   function nodeAlpha(node: SimNode): number {
     const view = viewRef.current;
+    let alpha = 1;
     if (view.hoverId) {
-      return highlightSet().has(node.id) ? 1 : 0.15;
+      alpha = highlightSet().has(node.id) ? 1 : 0.15;
+    } else if (!isMatch(node)) {
+      alpha = 0.15;
     }
-    if (!isMatch(node)) {
-      return 0.15;
-    }
-    return 1;
+    return alpha * revealOf(node.id);
   }
 
   function highlightSet(): Set<string> {
@@ -463,6 +498,9 @@ export const GraphCanvas = forwardRef<GraphCanvasHandle, {
           if (node.x == null || node.y == null) {
             return;
           }
+          if (revealOf(node.id) <= 0) {
+            return;
+          }
           if (node.kind === 'topic' && !viewRef.current.layers.topics) {
             return;
           }
@@ -475,9 +513,12 @@ export const GraphCanvas = forwardRef<GraphCanvasHandle, {
           if (!linkVisible(raw.kind, viewRef.current.layers)) {
             return false;
           }
+          const source = endpointId(raw.source);
+          const target = endpointId(raw.target);
+          if (Math.min(revealOf(source), revealOf(target)) <= 0) {
+            return false;
+          }
           if (raw.kind === 'belongs') {
-            const source = endpointId(raw.source);
-            const target = endpointId(raw.target);
             if (motion.flying(source) || motion.flying(target)) {
               return false;
             }
@@ -487,12 +528,12 @@ export const GraphCanvas = forwardRef<GraphCanvasHandle, {
         linkColor={(raw: SimLink) => {
           const link = raw;
           const view = viewRef.current;
-          let alpha = 1;
+          const source = endpointId(link.source);
+          const target = endpointId(link.target);
+          let alpha = Math.min(revealOf(source), revealOf(target));
           if (view.hoverId) {
             const highlighted = highlightSet();
-            const source = endpointId(link.source);
-            const target = endpointId(link.target);
-            alpha = highlighted.has(source) && highlighted.has(target) ? 1 : 0.08;
+            alpha *= highlighted.has(source) && highlighted.has(target) ? 1 : 0.08;
           }
           return edgeColor(link.kind, view.theme, alpha);
         }}

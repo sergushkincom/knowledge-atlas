@@ -21,6 +21,7 @@ import {
   type GraphState,
 } from '@/lib/actions';
 import { ATLAS_STORAGE_KEY, ATLAS_STORAGE_VERSION } from '@/lib/constants';
+import { arrivalWindowMs, unsortedArrivalIds, type UnsortedArrival } from '@/lib/arrival';
 import { atlasFromLoaded } from '@/lib/loadNotes';
 import type { LoadedNotes } from '@/lib/sources/notesSource';
 import type { AtlasData, LayerVisibility, Note, Settings, ThemeName } from '@/lib/types';
@@ -31,6 +32,11 @@ type HistorySlice = Pick<GraphState, 'topics' | 'assignments' | 'layouts'>;
 export type AtlasStore = AtlasData & {
   /** Notes loaded from a file, kept across reloads. null = the bundled demo notes. */
   customNotes: Note[] | null;
+  /**
+   * Notes from the latest file that landed in Unsorted, so the views can fade
+   * them in one by one. Not saved. null after reset or when none landed there.
+   */
+  unsortedArrival: UnsortedArrival | null;
   /** Replaces the notes with ones from a file. Clears undo history. */
   loadNotes: (loaded: LoadedNotes) => void;
   moveNotes: (noteIds: string[], topicId: string) => void;
@@ -76,6 +82,15 @@ function createInitialState(): AtlasData & { customNotes: Note[] | null } {
   };
 }
 
+let arrivalTimer: number | undefined;
+
+function clearArrivalTimer(): void {
+  if (arrivalTimer !== undefined) {
+    window.clearTimeout(arrivalTimer);
+    arrivalTimer = undefined;
+  }
+}
+
 function snapshot(state: AtlasStore): GraphState {
   return {
     notes: state.notes,
@@ -116,6 +131,7 @@ export const useAtlasStore = create<AtlasStore>()(
 
         return {
           ...createInitialState(),
+          unsortedArrival: null,
           moveNotes: (noteIds, topicId) => {
             commit(moveNotes(snapshot(get()), noteIds, topicId));
           },
@@ -166,17 +182,33 @@ export const useAtlasStore = create<AtlasStore>()(
           },
           loadNotes: (loaded) => {
             const next = atlasFromLoaded(loaded, get().topics);
+            const inboxId = next.topics.find((topic) => topic.isInbox)?.id;
+            const ids = unsortedArrivalIds(next.notes, next.assignments, inboxId);
+            const startedAt = performance.now();
+            clearArrivalTimer();
             set((state) => {
               state.notes = next.notes;
               state.customNotes = next.notes;
               state.topics = next.topics;
               state.assignments = next.assignments;
               state.layouts = [];
+              state.unsortedArrival = ids.length > 0 ? { ids, startedAt, animate: true } : null;
             });
             (api as unknown as TemporalApi).temporal.getState().clear();
+            if (ids.length > 0 && typeof window !== 'undefined') {
+              arrivalTimer = window.setTimeout(() => {
+                arrivalTimer = undefined;
+                set((state) => {
+                  if (state.unsortedArrival?.startedAt === startedAt) {
+                    state.unsortedArrival.animate = false;
+                  }
+                });
+              }, arrivalWindowMs(ids.length));
+            }
           },
           resetDemo: () => {
             const fresh = createInitialState();
+            clearArrivalTimer();
             set((state) => {
               state.notes = fresh.notes;
               state.customNotes = null;
@@ -184,6 +216,7 @@ export const useAtlasStore = create<AtlasStore>()(
               state.assignments = fresh.assignments;
               state.layouts = fresh.layouts;
               state.settings = fresh.settings;
+              state.unsortedArrival = null;
             });
             (api as unknown as TemporalApi).temporal.getState().clear();
           },

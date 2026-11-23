@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { ChevronRight } from 'lucide-react';
+import { noteArrivalStyle } from '@/lib/arrival';
 import { buildTopicTree, formatNoteDate, notesForTopic, SOURCE_LABELS } from '@/lib/selectors';
 import { useAtlasStore } from '@/lib/store';
 import { topicSwatch } from '@/lib/theme/palette';
@@ -51,8 +52,33 @@ export function CollectionViews({
   const topics = useAtlasStore((state) => state.topics);
   const assignments = useAtlasStore((state) => state.assignments);
   const theme = useAtlasStore((state) => state.settings.theme);
+  const arrival = useAtlasStore((state) => state.unsortedArrival);
   const [openTopicId, setOpenTopicId] = useState<string | null>('topic-meetings');
+  const [followedStamp, setFollowedStamp] = useState<number | null>(null);
+  if (arrival?.animate && followedStamp !== arrival.startedAt) {
+    setFollowedStamp(arrival.startedAt);
+    const inbox = topics.find((topic) => topic.isInbox);
+    if (inbox) {
+      setOpenTopicId(inbox.id);
+    }
+  }
   const topicById = new Map(topics.map((topic) => [topic.id, topic]));
+
+  function arriving(noteId: string): {
+    index?: number;
+    className: string;
+    style?: { animationDelay: string; animationDuration: string };
+  } {
+    if (!arrival) {
+      return { className: '' };
+    }
+    const index = arrival.ids.indexOf(noteId);
+    if (index < 0) {
+      return { className: '' };
+    }
+    const style = arrival.animate ? noteArrivalStyle(index, arrival.ids.length, 0) : undefined;
+    return { index, className: style ? 'note-arrive' : '', style };
+  }
 
   if (view === 'list') {
     const rows = notes
@@ -75,14 +101,17 @@ export function CollectionViews({
             const topic = topicId ? topicById.get(topicId) : undefined;
             const swatch = topic ? topicSwatch(topic.color, theme) : undefined;
             const selected = selectedId === note.id;
+            const motion = arriving(note.id);
             return (
               <li key={note.id}>
                 <button
                   type="button"
                   onClick={() => onSelect(note.id)}
+                  data-arrival-index={motion.index}
+                  style={motion.style}
                   className={`flex h-9 w-full items-center gap-3 px-4 text-left text-[14px] hover:bg-hover ${
                     selected ? 'bg-hover' : ''
-                  }`}
+                  } ${motion.className}`}
                 >
                   <span className="min-w-0 flex-1 truncate">
                     <span className="mr-2" aria-hidden>
@@ -134,22 +163,26 @@ export function CollectionViews({
               </button>
               {open ? (
                 <ul className="mb-1">
-                  {rows.map(({ note }) => (
-                    <li key={note.id}>
-                      <button
-                        type="button"
-                        onClick={() => onSelect(note.id)}
-                        className={`flex h-8 w-full items-center gap-2 rounded-md pr-2 text-left text-[14px] hover:bg-hover ${
-                          selectedId === note.id ? 'bg-hover' : ''
-                        }`}
-                        style={{ paddingLeft: 36 + depth * 16 }}
-                      >
-                        <span aria-hidden>{note.icon ?? '📄'}</span>
-                        <span className="min-w-0 flex-1 truncate">{note.title}</span>
-                        <span className="shrink-0 text-[12px] text-muted">{SOURCE_LABELS[note.source]}</span>
-                      </button>
-                    </li>
-                  ))}
+                  {rows.map(({ note }) => {
+                    const motion = arriving(note.id);
+                    return (
+                      <li key={note.id}>
+                        <button
+                          type="button"
+                          onClick={() => onSelect(note.id)}
+                          data-arrival-index={motion.index}
+                          className={`flex h-8 w-full items-center gap-2 rounded-md pr-2 text-left text-[14px] hover:bg-hover ${
+                            selectedId === note.id ? 'bg-hover' : ''
+                          } ${motion.className}`}
+                          style={{ paddingLeft: 36 + depth * 16, ...motion.style }}
+                        >
+                          <span aria-hidden>{note.icon ?? '📄'}</span>
+                          <span className="min-w-0 flex-1 truncate">{note.title}</span>
+                          <span className="shrink-0 text-[12px] text-muted">{SOURCE_LABELS[note.source]}</span>
+                        </button>
+                      </li>
+                    );
+                  })}
                 </ul>
               ) : null}
             </li>

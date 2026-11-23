@@ -1,7 +1,7 @@
 'use client';
 
 import dynamic from 'next/dynamic';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, type DragEvent } from 'react';
 import { Folder, List, MoreHorizontal, Network, Redo2, Search, Star, Undo2 } from 'lucide-react';
 import { toast, Toaster } from 'sonner';
 import { CommandPalette } from '@/components/command/CommandPalette';
@@ -69,6 +69,13 @@ export function AtlasShell() {
   const [live, setLive] = useState('');
   const [view, setView] = useState<AtlasView>('graph');
   const [menuOpen, setMenuOpen] = useState(false);
+  const [fileOver, setFileOver] = useState(false);
+
+  useEffect(() => {
+    const clearDrag = () => setFileOver(false);
+    window.addEventListener('dragend', clearDrag);
+    return () => window.removeEventListener('dragend', clearDrag);
+  }, []);
 
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
@@ -184,8 +191,52 @@ export function AtlasShell() {
       setLive(`Notes not loaded. ${reason}`);
     }
   };
+
+  function dragHasFiles(event: DragEvent): boolean {
+    const types = event.dataTransfer?.types;
+    return Boolean(types && Array.from(types).includes('Files'));
+  }
+
+  function onFileDragEnter(event: DragEvent<HTMLDivElement>) {
+    if (!dragHasFiles(event)) {
+      return;
+    }
+    event.preventDefault();
+    setFileOver(true);
+    setMenuOpen(false);
+  }
+
+  function onFileDragOver(event: DragEvent<HTMLDivElement>) {
+    if (!dragHasFiles(event)) {
+      return;
+    }
+    event.preventDefault();
+    event.dataTransfer.dropEffect = 'copy';
+  }
+
+  function onFileDragLeave(event: DragEvent<HTMLDivElement>) {
+    const next = event.relatedTarget;
+    if (next instanceof Node && event.currentTarget.contains(next)) {
+      return;
+    }
+    setFileOver(false);
+  }
+
+  function onFileDrop(event: DragEvent<HTMLDivElement>) {
+    event.preventDefault();
+    setFileOver(false);
+    void handleNotesFile(event.dataTransfer.files?.[0]);
+  }
+
   return (
-    <div className="flex h-dvh overflow-hidden bg-background text-foreground">
+    <div
+      className="relative flex h-dvh overflow-hidden bg-background text-foreground"
+      data-atlas-root
+      onDragEnter={onFileDragEnter}
+      onDragOver={onFileDragOver}
+      onDragLeave={onFileDragLeave}
+      onDrop={onFileDrop}
+    >
       <ThemeSync />
       <Toaster
         theme={theme}
@@ -438,6 +489,11 @@ export function AtlasShell() {
         onClose={() => setPaletteOpen(false)}
         onChoose={choose}
       />
+      {fileOver ? (
+        <div className="pointer-events-none absolute inset-3 z-50 flex items-center justify-center rounded-lg border-2 border-dashed border-accent bg-background/80">
+          <p className="text-[16px] font-medium text-foreground">Drop your notes</p>
+        </div>
+      ) : null}
     </div>
   );
 }
